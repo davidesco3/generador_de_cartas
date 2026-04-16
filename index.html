@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GuíaBien — Generador de Cartas</title>
+    <meta name="description" content="Automatizador de cartas y formatos para GuíaBien Asesores en Seguros">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header" id="header">
+        <div class="header-inner">
+            <div class="logo-group" id="btn-home" onclick="resetApp()" style="cursor: pointer;">
+                <img src="Logo GuíaBien.png" alt="GuíaBien Asesores en Seguros" class="logo-img" id="logo-img">
+                <div class="logo-text">
+                    <span class="logo-title">GuíaBien</span>
+                    <span class="logo-subtitle">Generador de Cartas</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main App -->
+    <main class="main-container" id="main-container">
+        <!-- Step 1: Select Letter Type -->
+        <section class="step-section active" id="step-1">
+            <div class="step-header">
+                <div class="step-badge">1</div>
+                <div>
+                    <h1 class="step-title">Selecciona el tipo de carta</h1>
+                    <p class="step-desc">Elige el formato que necesitas generar</p>
+                </div>
+            </div>
+            <div class="cards-grid" id="cards-grid">
+                <!-- Cards will be injected by JS -->
+            </div>
+        </section>
+
+        <!-- Step 2: Fill Form -->
+        <section class="step-section" id="step-2">
+            <div class="step-header">
+                <button class="btn-back" id="btn-back" onclick="goBack()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+                    Volver
+                </button>
+                <div class="step-badge">2</div>
+                <div>
+                    <h2 class="step-title" id="form-title">Completa los datos</h2>
+                    <p class="step-desc" id="form-desc">Ingresa la información requerida para generar la carta</p>
+                </div>
+            </div>
+            <form class="letter-form" id="letter-form" onsubmit="generatePDF(event)">
+                <div class="form-grid" id="form-fields">
+                    <!-- Dynamic fields injected by JS -->
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary" id="btn-generate">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                        Generar Carta PDF
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Step 3: Success -->
+        <section class="step-section" id="step-3">
+            <div class="success-card">
+                <div class="success-icon-wrap">
+                    <svg class="success-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+                <h2 class="success-title">¡Carta generada exitosamente!</h2>
+                <p class="success-desc">El PDF se ha descargado automáticamente.</p>
+                <button class="btn-primary" onclick="resetApp()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                    Generar otra carta
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>© 2026 GuíaBien Asesores en Seguros · Generador de Cartas</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
