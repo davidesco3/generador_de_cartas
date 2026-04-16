@@ -566,8 +566,26 @@ function generatePDF(e) {
         }
 
         // ---- Save ----
-        const baseTitle = currentLetter.title.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // remove accents for filename
-        const fileName = `${baseTitle.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+        // Try to find the client's name from form fields
+        let clientName = '';
+        const nameFields = ['nombre_tomador', 'nombre_empresa', 'nombre_firmante', 'nombre_tomador_actual', 'nombre_representante'];
+        
+        for (const fieldId of nameFields) {
+            const input = document.querySelector(`[name="${fieldId}"]`);
+            if (input && input.value.trim()) {
+                clientName = input.value.trim();
+                break;
+            }
+        }
+
+        const baseTitle = currentLetter.title.normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // remove accents
+        let cleanClientName = clientName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        cleanClientName = cleanClientName.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_');
+        
+        if (cleanClientName) cleanClientName = "_" + cleanClientName;
+
+        const fileName = `${baseTitle.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '_')}${cleanClientName}.pdf`;
+        
         doc.save(fileName);
         console.log("PDF generated successfully:", fileName);
         showStep(3);
