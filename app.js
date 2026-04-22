@@ -646,7 +646,7 @@ function pdfFooter(doc, pageWidth, pageHeight) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(120, 120, 120);
-    doc.text('GuíaBien Asesores en Seguros · Código 3052 · www.guiabien.com', pageWidth / 2, pageHeight - 12, { align: 'center' });
+    doc.text('GuíaBien Asesores en Seguros · www.guiabien.com', pageWidth / 2, pageHeight - 12, { align: 'center' });
 }
 
 function pdfDrawTable(doc, headers, rows, x, y, colWidths) {
