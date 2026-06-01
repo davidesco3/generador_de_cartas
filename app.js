@@ -451,6 +451,33 @@ function handleSelectChange(selectEl, fieldId) {
             manualContainer.style.display = 'none';
         }
     }
+
+    // Auto-populate GuiaBien code when the insurer changes
+    if (fieldId === 'aseguradora') {
+        const insurer = selectEl.value;
+        const codeInput = document.getElementById('field-codigo_guiabien');
+        if (codeInput) {
+            const insurerCodes = {
+                'SURA': '3052',
+                'QUALITAS': '21507',
+                'HDI': currentLetter && currentLetter.id === 'cambio_intermediario' ? '95318' : '4003480',
+                'LIBERTY': '4095318',
+                'ALLIANZ': '1707968',
+                'SBS': '202299',
+                'SOLIDARIA': '6234',
+                'BOLIVAR': '43720',
+                'CHUBB': '42392',
+                'MAPFRE': '13075'
+            };
+            
+            const key = insurer ? insurer.toUpperCase().trim() : '';
+            if (insurerCodes[key]) {
+                codeInput.value = insurerCodes[key];
+            } else {
+                codeInput.value = '';
+            }
+        }
+    }
 }
 
 function formatDate(dateStr) {
