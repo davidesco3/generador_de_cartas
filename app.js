@@ -215,6 +215,26 @@ const LETTERS = [
             { id: 'tipo_doc', label: 'Tipo de Documento', type: 'select', options: ['Cédula de Ciudadanía', 'Cédula de Extranjería', 'NIT', 'Pasaporte'], required: true },
             { id: 'numero_doc', label: 'Número de Documento', placeholder: 'Ej: 1.234.567.890', required: true },
         ]
+    },
+    {
+        id: 'congelacion_salud',
+        title: 'Solicitud de Congelación Póliza de Salud',
+        desc: 'Solicitud para congelar una póliza de salud familiar',
+        icon: '❄️',
+        iconColor: 'blue',
+        requiresClientSignature: true,
+        fields: [
+            { id: 'fecha', label: 'Fecha de elaboración (Hoy)', type: 'date', required: true },
+            { id: 'aseguradora', label: 'Aseguradora', type: 'select', options: INSURERS, required: true },
+            { id: 'numero_poliza', label: 'Número de Póliza', placeholder: 'Ej: 123456', required: true },
+            { id: 'motivo_congelacion', label: 'Motivo de Congelación', type: 'select', options: ['traslado fuera del país por motivo laboral', 'traslado fuera del país por estudios', 'situación económica o incapacidad de pago actual'], required: true },
+            { id: 'fecha_inicio_congelacion', label: 'Fecha de Inicio de Congelación', type: 'date', required: true },
+            { id: 'fecha_fin_congelacion', label: 'Fecha de Fin de Congelación', type: 'date', required: true },
+            { id: '_section_firma', label: 'Datos del Tomador', type: 'section' },
+            { id: 'nombre_tomador', label: 'Nombre del Tomador', placeholder: 'Nombre completo', required: true },
+            { id: 'tipo_doc', label: 'Tipo de Documento', type: 'select', options: ['Cédula de Ciudadanía', 'Cédula de Extranjería', 'NIT', 'Pasaporte'], required: true },
+            { id: 'numero_doc', label: 'Número de Documento', placeholder: 'Ej: 1.234.567.890', required: true },
+        ]
     }
 ];
 
@@ -590,6 +610,7 @@ function generatePDF(e) {
             case 'devolucion_saldo': generateDevolucionSaldo(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
             case 'presentacion_condiciones': generatePresentacionCondiciones(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
             case 'rehabilitacion': generateRehabilitacion(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
+            case 'congelacion_salud': generateCongelacionSalud(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
         }
 
         // ---- Save ----
@@ -1106,6 +1127,50 @@ function generateRehabilitacion(doc, y, ml, cw, pw, mr) {
     doc.text(nombreTomador, ml, y); y += 5.5;
     pdfSetNormal(doc);
     doc.text(`${tipoDoc} No. ${numDoc}`, ml, y);
+
+    pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
+}
+
+function generateCongelacionSalud(doc, y, ml, cw, pw, mr) {
+    const fecha = formatDate(getFieldValue('fecha'));
+    const aseguradora = getFieldValue('aseguradora');
+    const nPoliza = getFieldValue('numero_poliza');
+    const motivo = getFieldValue('motivo_congelacion');
+    const fechaInicio = formatDate(getFieldValue('fecha_inicio_congelacion'));
+    const fechaFin = formatDate(getFieldValue('fecha_fin_congelacion'));
+    const nombreTomador = getFieldValue('nombre_tomador');
+    const tipoDoc = getFieldValue('tipo_doc');
+    const numDoc = getFieldValue('numero_doc');
+
+    pdfSetNormal(doc);
+    y = pdfWriteText(doc, `Medellín, ${fecha}.`, ml, y, cw);
+    y += 8;
+
+    pdfSetBold(doc);
+    doc.text('Señores:', ml, y); y += 5.5;
+    doc.text(aseguradora.toUpperCase(), ml, y); y += 5.5;
+    pdfSetNormal(doc);
+    doc.text('Ciudad', ml, y); y += 10;
+
+    pdfSetSubject(doc);
+    y = pdfWriteText(doc, `ASUNTO: Solicitud de congelación póliza de salud familiar No. ${nPoliza}`, ml, y, cw);
+    y += 8;
+
+    pdfSetNormal(doc);
+    const bodyText = `Solicito amablemente sea congelada la póliza salud familiar debido a ${motivo}, por favor congelar a partir desde el día ${fechaInicio} hasta ${fechaFin}.`;
+    y = pdfWriteText(doc, bodyText, ml, y, cw);
+    y += 8;
+
+    y = pdfWriteText(doc, 'Muchas gracias', ml, y, cw);
+    y += 6;
+    y = pdfWriteText(doc, 'Atentamente,', ml, y, cw);
+    y += 15;
+
+    y = pdfDrawSignatureLine(doc, y, ml, cw);
+    pdfSetNormal(doc);
+    doc.text(`Tomador: ${nombreTomador}`, ml, y); y += 5.5;
+    doc.text(`Tipo de documento: ${tipoDoc}`, ml, y); y += 5.5;
+    doc.text(`Número de documento: ${numDoc}`, ml, y);
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
