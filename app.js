@@ -227,6 +227,8 @@ const LETTERS = [
             { id: 'fecha', label: 'Fecha de elaboración (Hoy)', type: 'date', required: true },
             { id: 'aseguradora', label: 'Aseguradora', type: 'select', options: INSURERS, required: true },
             { id: 'numero_poliza', label: 'Número de Póliza', placeholder: 'Ej: 123456', required: true },
+            { id: 'alcance_congelacion', label: '¿Qué desea congelar?', type: 'select', options: ['Toda la póliza', 'Asegurados específicos'], required: true },
+            { id: 'congelados_table', type: 'congelados_table' },
             { id: 'motivo_congelacion', label: 'Motivo de Congelación', type: 'select', options: ['traslado fuera del país por motivo laboral', 'traslado fuera del país por estudios', 'situación económica o incapacidad de pago actual'], required: true },
             { id: 'fecha_inicio_congelacion', label: 'Fecha de Inicio de Congelación', type: 'date', required: true },
             { id: 'fecha_fin_congelacion', label: 'Fecha de Fin de Congelación', type: 'date', required: true },
@@ -315,6 +317,10 @@ function renderForm(fields) {
         }
         if (field.type === 'trasladar_table') {
             container.innerHTML += renderTrasladarTable();
+            return;
+        }
+        if (field.type === 'congelados_table') {
+            container.innerHTML += `<div id="container-congelados_table" style="display: none; width: 100%; margin-top: 15px; margin-bottom: 15px;">${renderCongeladosTable()}</div>`;
             return;
         }
 
@@ -422,6 +428,62 @@ function removeTrasladarRow(btn) {
     }
 }
 
+function renderCongeladosTable() {
+    return `
+        <div class="form-section-title">Asegurados a congelar</div>
+        <div id="congelados-rows">
+            <div class="congelados-row" data-row="0">
+                <div class="form-group"><label>Nombre Asegurado</label><input type="text" name="cong_nombre_0" placeholder="Nombre completo"></div>
+                <div class="form-group"><label>Tipo de Doc.</label>
+                    <select name="cong_tipodoc_0" class="congelados-select">
+                        <option value="C.C.">C.C.</option>
+                        <option value="C.E.">C.E.</option>
+                        <option value="NIT">NIT</option>
+                        <option value="Pasaporte">Pasaporte</option>
+                        <option value="T.I.">T.I.</option>
+                        <option value="R.C.">R.C.</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Número Doc.</label><input type="text" name="cong_numdoc_0" placeholder="Ej: 1.234.567"></div>
+                <button type="button" class="btn-remove-row" onclick="removeCongeladosRow(this)" title="Eliminar">✕</button>
+            </div>
+        </div>
+        <button type="button" class="btn-add-row" onclick="addCongeladosRow()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Agregar asegurado
+        </button>`;
+}
+
+function addCongeladosRow() {
+    const container = document.getElementById('congelados-rows');
+    const idx = container.children.length;
+    const row = document.createElement('div');
+    row.className = 'congelados-row';
+    row.dataset.row = idx;
+    row.innerHTML = `
+        <div class="form-group"><label>Nombre Asegurado</label><input type="text" name="cong_nombre_${idx}" placeholder="Nombre completo"></div>
+        <div class="form-group"><label>Tipo de Doc.</label>
+            <select name="cong_tipodoc_${idx}" class="congelados-select">
+                <option value="C.C.">C.C.</option>
+                <option value="C.E.">C.E.</option>
+                <option value="NIT">NIT</option>
+                <option value="Pasaporte">Pasaporte</option>
+                <option value="T.I.">T.I.</option>
+                <option value="R.C.">R.C.</option>
+            </select>
+        </div>
+        <div class="form-group"><label>Número Doc.</label><input type="text" name="cong_numdoc_${idx}" placeholder="Ej: 1.234.567"></div>
+        <button type="button" class="btn-remove-row" onclick="removeCongeladosRow(this)" title="Eliminar">✕</button>`;
+    container.appendChild(row);
+}
+
+function removeCongeladosRow(btn) {
+    const container = document.getElementById('congelados-rows');
+    if (container.children.length > 1) {
+        btn.closest('.congelados-row').remove();
+    }
+}
+
 // ============================================================
 //  NAVIGATION
 // ============================================================
@@ -469,6 +531,17 @@ function handleSelectChange(selectEl, fieldId) {
             if (manualInput) manualInput.focus();
         } else {
             manualContainer.style.display = 'none';
+        }
+    }
+
+    if (fieldId === 'alcance_congelacion') {
+        const tableContainer = document.getElementById('container-congelados_table');
+        if (tableContainer) {
+            if (selectEl.value === 'Asegurados específicos') {
+                tableContainer.style.display = 'block';
+            } else {
+                tableContainer.style.display = 'none';
+            }
         }
     }
 
@@ -1142,6 +1215,20 @@ function generateCongelacionSalud(doc, y, ml, cw, pw, mr) {
     const tipoDoc = getFieldValue('tipo_doc');
     const numDoc = getFieldValue('numero_doc');
 
+    const alcance = getFieldValue('alcance_congelacion') || 'Toda la póliza';
+    const congelados = [];
+    if (alcance === 'Asegurados específicos') {
+        const rows = document.querySelectorAll('.congelados-row');
+        rows.forEach(row => {
+            const nombre = row.querySelector('input[name^="cong_nombre_"]').value.trim();
+            const tipoDoc = row.querySelector('select[name^="cong_tipodoc_"]').value;
+            const numDoc = row.querySelector('input[name^="cong_numdoc_"]').value.trim();
+            if (nombre) {
+                congelados.push({ nombre, tipoDoc, numDoc });
+            }
+        });
+    }
+
     pdfSetNormal(doc);
     y = pdfWriteText(doc, `Medellín, ${fecha}.`, ml, y, cw);
     y += 8;
@@ -1157,8 +1244,24 @@ function generateCongelacionSalud(doc, y, ml, cw, pw, mr) {
     y += 8;
 
     pdfSetNormal(doc);
-    const bodyText = `Solicito amablemente sea congelada la póliza salud familiar debido a ${motivo}, por favor congelar a partir desde el día ${fechaInicio} hasta ${fechaFin}.`;
+    let bodyText = '';
+    if (alcance === 'Toda la póliza') {
+        bodyText = `Solicito amablemente sea congelada la póliza salud familiar debido a ${motivo}, por favor congelar a partir desde el día ${fechaInicio} hasta ${fechaFin}.`;
+    } else {
+        bodyText = `Solicito amablemente sea congelada la cobertura en la póliza de salud familiar para los siguientes asegurados, debido a ${motivo}, por favor congelar a partir desde el día ${fechaInicio} hasta ${fechaFin}:`;
+    }
+    
     y = pdfWriteText(doc, bodyText, ml, y, cw);
+    
+    if (alcance === 'Asegurados específicos' && congelados.length > 0) {
+        y += 4;
+        pdfSetBold(doc);
+        congelados.forEach(c => {
+            y = pdfWriteText(doc, `• ${c.nombre} (${c.tipoDoc} No. ${c.numDoc})`, ml + 5, y, cw - 5);
+        });
+        pdfSetNormal(doc);
+    }
+    
     y += 8;
 
     y = pdfWriteText(doc, 'Muchas gracias', ml, y, cw);
