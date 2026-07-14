@@ -237,6 +237,23 @@ const LETTERS = [
             { id: 'tipo_doc', label: 'Tipo de Documento', type: 'select', options: ['Cédula de Ciudadanía', 'Cédula de Extranjería', 'NIT', 'Pasaporte'], required: true },
             { id: 'numero_doc', label: 'Número de Documento', placeholder: 'Ej: 1.234.567.890', required: true },
         ]
+    },
+    {
+        id: 'consulta_condiciones',
+        title: 'Autorización para Consultar Condiciones',
+        desc: 'Autorización para consultar vinculaciones y condiciones de seguros (Para no clientes)',
+        icon: '📄',
+        iconColor: 'orange',
+        requiresClientSignature: true,
+        fields: [
+            { id: 'fecha', label: 'Fecha de elaboración (Hoy)', type: 'date', required: true },
+            { id: 'aseguradora', label: 'Aseguradora', type: 'select', options: INSURERS, required: true },
+            { id: 'codigo_guiabien', label: 'Código de GuíaBien en esta aseguradora', placeholder: 'Ej: 3052', required: true },
+            { id: '_section_firma', label: 'Datos del Asegurado', type: 'section' },
+            { id: 'nombre_tomador', label: 'Nombre del Asegurado', placeholder: 'Nombre completo', required: true },
+            { id: 'tipo_doc', label: 'Tipo de Documento', type: 'select', options: ['Cédula de Ciudadanía', 'Cédula de Extranjería', 'NIT', 'Pasaporte'], required: true },
+            { id: 'numero_doc', label: 'Número de Documento', placeholder: 'Ej: 1.234.567.890', required: true },
+        ]
     }
 ];
 
@@ -684,6 +701,7 @@ function generatePDF(e) {
             case 'presentacion_condiciones': generatePresentacionCondiciones(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
             case 'rehabilitacion': generateRehabilitacion(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
             case 'congelacion_salud': generateCongelacionSalud(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
+            case 'consulta_condiciones': generateConsultaCondiciones(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
         }
 
         // ---- Save ----
@@ -1274,6 +1292,42 @@ function generateCongelacionSalud(doc, y, ml, cw, pw, mr) {
     doc.text(`Tomador: ${nombreTomador}`, ml, y); y += 5.5;
     doc.text(`Tipo de documento: ${tipoDoc}`, ml, y); y += 5.5;
     doc.text(`Número de documento: ${numDoc}`, ml, y);
+
+    pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
+}
+
+function generateConsultaCondiciones(doc, y, ml, cw, pw, mr) {
+    const fecha = formatDate(getFieldValue('fecha'));
+    const aseguradora = getFieldValue('aseguradora');
+    const codigoGuiaBien = getFieldValue('codigo_guiabien');
+    const nombreTomador = getFieldValue('nombre_tomador');
+    const tipoDoc = getFieldValue('tipo_doc');
+    const numDoc = getFieldValue('numero_doc');
+
+    pdfSetNormal(doc);
+    y = pdfWriteText(doc, `Medellín, ${fecha}.`, ml, y, cw);
+    y += 8;
+
+    pdfSetBold(doc);
+    doc.text('SEÑORES', ml, y); y += 5.5;
+    doc.text(aseguradora.toUpperCase(), ml, y); y += 10;
+
+    pdfSetSubject(doc);
+    y = pdfWriteText(doc, 'Asunto: AUTORIZACIÓN PARA CONSULTAR VINCULACIONES Y CONDICIONES.', ml, y, cw);
+    y += 8;
+
+    pdfSetNormal(doc);
+    y = pdfWriteText(doc, `Por medio de la presente, yo ${nombreTomador}, identificado con ${tipoDoc} No. ${numDoc}, autorizo de manera expresa a la agencia GuíaBien Asesores en Seguros, con código de intermediario ${codigoGuiaBien}, para que en mi nombre consulte ante ${aseguradora} todas mis vinculaciones, pólizas, amparos y condiciones actuales.`, ml, y, cw);
+    y += 12;
+
+    y = pdfWriteText(doc, 'Cordialmente,', ml, y, cw);
+    y += 15;
+
+    y = pdfDrawSignatureLine(doc, y, ml, cw);
+    pdfSetBold(doc);
+    doc.text(nombreTomador, ml, y); y += 5.5;
+    pdfSetNormal(doc);
+    doc.text(`${tipoDoc} No. ${numDoc}`, ml, y);
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
