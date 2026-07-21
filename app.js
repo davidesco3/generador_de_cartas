@@ -254,6 +254,28 @@ const LETTERS = [
             { id: 'tipo_doc', label: 'Tipo de Documento', type: 'select', options: ['Cédula de Ciudadanía', 'Cédula de Extranjería', 'NIT', 'Pasaporte'], required: true },
             { id: 'numero_doc', label: 'Número de Documento', placeholder: 'Ej: 1.234.567.890', required: true },
         ]
+    },
+    {
+        id: 'retiro_asegurado_salud',
+        title: 'Retiro de Asegurado en Salud',
+        desc: 'Solicitud para retirar un asegurado de una póliza de salud en la que está actualmente',
+        icon: '➖',
+        iconColor: 'red',
+        requiresClientSignature: true,
+        fields: [
+            { id: 'fecha', label: 'Fecha de elaboración (Hoy)', type: 'date', required: true },
+            { id: 'aseguradora', label: 'Aseguradora', type: 'select', options: INSURERS, required: true },
+            { id: 'numero_poliza', label: 'Número de Póliza', placeholder: 'Ej: 123456', required: true },
+            { id: '_section_asegurado', label: 'Datos del Asegurado a Retirar', type: 'section' },
+            { id: 'nombre_asegurado', label: 'Nombre del Asegurado', placeholder: 'Nombre completo', required: true },
+            { id: 'tipo_doc_asegurado', label: 'Tipo de Documento', type: 'select', options: ['Cédula de Ciudadanía', 'Cédula de Extranjería', 'NIT', 'Pasaporte', 'Registro Civil', 'Tarjeta de Identidad'], required: true },
+            { id: 'numero_doc_asegurado', label: 'Número de Documento', placeholder: 'Ej: 1.234.567.890', required: true },
+            { id: 'fecha_ejecucion', label: 'Fecha de retiro', type: 'date', required: true },
+            { id: '_section_firma', label: 'Datos del Tomador', type: 'section' },
+            { id: 'nombre_tomador', label: 'Nombre del Tomador', placeholder: 'Nombre completo', required: true },
+            { id: 'tipo_doc', label: 'Tipo de Documento', type: 'select', options: ['Cédula de Ciudadanía', 'Cédula de Extranjería', 'NIT', 'Pasaporte'], required: true },
+            { id: 'numero_doc', label: 'Número de Documento', placeholder: 'Ej: 1.234.567.890', required: true },
+        ]
     }
 ];
 
@@ -702,6 +724,7 @@ function generatePDF(e) {
             case 'rehabilitacion': generateRehabilitacion(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
             case 'congelacion_salud': generateCongelacionSalud(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
             case 'consulta_condiciones': generateConsultaCondiciones(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
+            case 'retiro_asegurado_salud': generateRetiroAseguradoSalud(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
         }
 
         // ---- Save ----
@@ -1328,6 +1351,55 @@ function generateConsultaCondiciones(doc, y, ml, cw, pw, mr) {
     doc.text(nombreTomador, ml, y); y += 5.5;
     pdfSetNormal(doc);
     doc.text(`${tipoDoc} No. ${numDoc}`, ml, y);
+
+    pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
+}
+
+function generateRetiroAseguradoSalud(doc, y, ml, cw, pw, mr) {
+    const fecha = formatDate(getFieldValue('fecha'));
+    const aseguradora = getFieldValue('aseguradora');
+    const nPoliza = getFieldValue('numero_poliza');
+    const fechaRetiro = formatDate(getFieldValue('fecha_ejecucion'));
+    const nombreAsegurado = getFieldValue('nombre_asegurado');
+    const tipoDocAsegurado = getFieldValue('tipo_doc_asegurado');
+    const numDocAsegurado = getFieldValue('numero_doc_asegurado');
+    const nombreTomador = getFieldValue('nombre_tomador');
+    const tipoDocTomador = getFieldValue('tipo_doc');
+    const numDocTomador = getFieldValue('numero_doc');
+
+    pdfSetNormal(doc);
+    y = pdfWriteText(doc, `Medellín, ${fecha}.`, ml, y, cw);
+    y += 8;
+
+    pdfSetBold(doc);
+    doc.text('SEÑORES', ml, y); y += 5.5;
+    doc.text(aseguradora.toUpperCase(), ml, y); y += 10;
+
+    pdfSetSubject(doc);
+    y = pdfWriteText(doc, `ASUNTO: RETIRO DE ASEGURADO - PÓLIZA DE SALUD No. ${nPoliza}`, ml, y, cw);
+    y += 8;
+
+    pdfSetNormal(doc);
+    y = pdfWriteText(doc, `Por medio de la presente, yo ${nombreTomador}, identificado con ${tipoDocTomador} No. ${numDocTomador}, en calidad de tomador de la póliza de salud referenciada, solicito el retiro del siguiente asegurado:`, ml, y, cw);
+    y += 6;
+    
+    pdfSetBold(doc);
+    y = pdfWriteText(doc, `• Nombre: ${nombreAsegurado}`, ml + 5, y, cw - 5);
+    y = pdfWriteText(doc, `• Documento: ${tipoDocAsegurado} No. ${numDocAsegurado}`, ml + 5, y, cw - 5);
+    y += 2;
+
+    pdfSetNormal(doc);
+    y = pdfWriteText(doc, `Solicito que el retiro se haga efectivo a partir del ${fechaRetiro}.`, ml, y, cw);
+    y += 12;
+
+    y = pdfWriteText(doc, 'Cordialmente,', ml, y, cw);
+    y += 15;
+
+    y = pdfDrawSignatureLine(doc, y, ml, cw);
+    pdfSetBold(doc);
+    doc.text(nombreTomador, ml, y); y += 5.5;
+    pdfSetNormal(doc);
+    doc.text(`${tipoDocTomador} No. ${numDocTomador}`, ml, y);
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
