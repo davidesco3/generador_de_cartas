@@ -58,6 +58,7 @@ const LETTERS = [
             { id: 'numero_poliza', label: 'Número de Póliza', placeholder: 'Ej: 123456', required: true },
             { id: '_section_beneficiarios', label: 'Nuevos Beneficiarios', type: 'section' },
             { id: 'beneficiarios', label: 'Beneficiarios', type: 'beneficiary_table' },
+            { id: 'beneficiarios_contingentes', label: 'Beneficiarios contingentes', type: 'textarea', placeholder: 'Descripción de beneficiarios contingentes (Opcional)' },
             { id: '_section_firma', label: 'Datos del Tomador', type: 'section' },
             { id: 'nombre_tomador', label: 'Nombre del Tomador', placeholder: 'Nombre completo', required: true },
             { id: 'tipo_doc', label: 'Tipo de Documento', type: 'select', options: ['Cédula de Ciudadanía', 'Cédula de Extranjería', 'NIT', 'Pasaporte'], required: true },
@@ -992,6 +993,16 @@ function generateActualizacionBeneficiarios(doc, y, ml, cw, pw, mr) {
         bens.map(b => [b.nombre, b.parentesco, b.doc, b.pct]),
         ml, y, [50, 30, 40, 30]);
     y += 8;
+
+    const contingentes = getFieldValue('beneficiarios_contingentes');
+    if (contingentes) {
+        pdfSetBold(doc);
+        y = pdfWriteText(doc, 'Actualización de beneficiarios contingentes:', ml, y, cw);
+        y += 2;
+        pdfSetNormal(doc);
+        y = pdfWriteText(doc, contingentes, ml, y, cw);
+        y += 8;
+    }
 
     pdfSetNormal(doc);
     doc.text('Atentamente:', ml, y); y += 10;
