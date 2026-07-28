@@ -374,8 +374,24 @@ function renderForm(fields) {
                     ${field.options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
                 </select>
                 <div id="manual-container-${field.id}" class="manual-input-container" style="display: none; margin-top: 8px;">
-                    <input type="text" id="field-${field.id}-manual" placeholder="Escriba el valor manual para ${field.label.toLowerCase()}" style="border-color: var(--orange-light);">
+                    <label class="form-label">Por favor especifique:</label>
+                    <input type="text" class="form-control" id="field-${field.id}-manual" placeholder="Escriba aquí...">
+                </div>
+            `;
+            if (field.id.startsWith('tipo_doc')) {
+                inputHTML += `
+                <div id="container-rep-${field.id}" style="display: none; margin-top: 15px; padding: 15px; background-color: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; grid-column: 1 / -1;">
+                    <div style="margin-bottom: 12px; font-weight: 600; font-size: 0.95rem; color: #334155;">Datos del Representante Legal (Requerido para NIT)</div>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label class="form-label">Nombre del Representante Legal <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="field-rep_nombre_${field.id}" placeholder="Nombre completo">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Identificación del Representante Legal <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="field-rep_id_${field.id}" placeholder="Ej: 1.234.567.890">
+                    </div>
                 </div>`;
+            }
         } else if (field.type === 'textarea') {
             inputHTML = `
                 <textarea id="field-${field.id}" placeholder="${field.placeholder || ''}" ${field.required ? 'required' : ''}></textarea>`;
@@ -562,6 +578,23 @@ function getFieldValue(id) {
 }
 
 function handleSelectChange(selectEl, fieldId) {
+    if (fieldId.startsWith('tipo_doc')) {
+        const repContainer = document.getElementById(`container-rep-${fieldId}`);
+        if (repContainer) {
+            const repNombre = document.getElementById(`field-rep_nombre_${fieldId}`);
+            const repId = document.getElementById(`field-rep_id_${fieldId}`);
+            if (selectEl.value === 'NIT') {
+                repContainer.style.display = 'block';
+                if (repNombre) repNombre.required = true;
+                if (repId) repId.required = true;
+            } else {
+                repContainer.style.display = 'none';
+                if (repNombre) repNombre.required = false;
+                if (repId) repId.required = false;
+            }
+        }
+    }
+
     const manualContainer = document.getElementById(`manual-container-${fieldId}`);
     if (manualContainer) {
         if (selectEl.value === 'OTRA') {
@@ -792,6 +825,30 @@ function pdfWriteText(doc, text, x, y, maxWidth) {
     return y + (lines.length * 5.5);
 }
 
+function pdfDrawSignatureBlock(doc, y, ml, cw, name, tipoDoc, numDoc, fieldIdPrefix) {
+    y = pdfDrawSignatureLine(doc, y, ml, cw);
+    pdfSetBold(doc);
+    if (tipoDoc === 'NIT') {
+        const repName = getFieldValue(`rep_nombre_${fieldIdPrefix}`);
+        const repId = getFieldValue(`rep_id_${fieldIdPrefix}`);
+        if (repName && repId) {
+            doc.text(repName, ml, y); y += 5.5;
+            pdfSetNormal(doc);
+            doc.text(`C.C. No. ${repId}`, ml, y); y += 5.5;
+            doc.text('Representante Legal', ml, y); y += 5.5;
+            pdfSetBold(doc);
+        }
+        doc.text(name, ml, y); y += 5.5;
+        pdfSetNormal(doc);
+        doc.text(`NIT: ${numDoc}`, ml, y);
+    } else {
+        doc.text(name, ml, y); y += 5.5;
+        pdfSetNormal(doc);
+        doc.text(`${tipoDoc} No. ${numDoc}`, ml, y);
+    }
+    return y;
+}
+
 function pdfDrawSignatureLine(doc, y, marginLeft, contentWidth) {
     y += 8;
     doc.setDrawColor(30, 30, 30);
@@ -896,11 +953,7 @@ function generateCambioIntermediario(doc, y, ml, cw, pw, mr) {
     // Signature
     pdfSetNormal(doc);
     doc.text('Atentamente,', ml, y); y += 8;
-    y = pdfDrawSignatureLine(doc, y, ml, cw);
-    pdfSetBold(doc);
-    doc.text(nombreTomador, ml, y); y += 5.5;
-    pdfSetNormal(doc);
-    doc.text(`${tipoDoc} No. ${numDoc}`, ml, y);
+    y = pdfDrawSignatureBlock(doc, y, ml, cw, nombreTomador, tipoDoc, numDoc, 'tipo_doc');
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
@@ -942,11 +995,7 @@ function generateActualizacionBeneficiarios(doc, y, ml, cw, pw, mr) {
 
     pdfSetNormal(doc);
     doc.text('Atentamente:', ml, y); y += 10;
-    y = pdfDrawSignatureLine(doc, y, ml, cw);
-    pdfSetBold(doc);
-    doc.text(nombreTomador, ml, y); y += 5.5;
-    pdfSetNormal(doc);
-    doc.text(`${tipoDoc} No. ${numDoc}`, ml, y);
+    y = pdfDrawSignatureBlock(doc, y, ml, cw, nombreTomador, tipoDoc, numDoc, 'tipo_doc');
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
@@ -981,11 +1030,7 @@ function generateCambioPeriodicidad(doc, y, ml, cw, pw, mr) {
     y = pdfWriteText(doc, `Póliza No. ${nPoliza}`, ml, y, cw);
     y += 12;
 
-    y = pdfDrawSignatureLine(doc, y, ml, cw);
-    pdfSetBold(doc);
-    doc.text(nombreTomador, ml, y); y += 5.5;
-    pdfSetNormal(doc);
-    doc.text(`${tipoDoc} No. ${numDoc}`, ml, y);
+    y = pdfDrawSignatureBlock(doc, y, ml, cw, nombreTomador, tipoDoc, numDoc, 'tipo_doc');
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
@@ -1021,11 +1066,7 @@ function generateCancelacionPoliza(doc, y, ml, cw, pw, mr) {
     y = pdfWriteText(doc, bodyText, ml, y, cw);
     y += 12;
 
-    y = pdfDrawSignatureLine(doc, y, ml, cw);
-    pdfSetBold(doc);
-    doc.text(nombreTomador, ml, y); y += 5.5;
-    pdfSetNormal(doc);
-    doc.text(`${tipoDoc} No. ${numDoc}`, ml, y);
+    y = pdfDrawSignatureBlock(doc, y, ml, cw, nombreTomador, tipoDoc, numDoc, 'tipo_doc');
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
@@ -1111,11 +1152,7 @@ function generateCambioTomador(doc, y, ml, cw, pw, mr) {
     y = pdfWriteText(doc, 'Muchas gracias.', ml, y, cw);
     y += 12;
 
-    y = pdfDrawSignatureLine(doc, y, ml, cw);
-    pdfSetBold(doc);
-    doc.text(nombreFirmante, ml, y); y += 5.5;
-    pdfSetNormal(doc);
-    doc.text(`${tipoDocFirmante} No. ${numDocFirmante}`, ml, y);
+    y = pdfDrawSignatureBlock(doc, y, ml, cw, nombreFirmante, tipoDocFirmante, numDocFirmante, 'tipo_doc_firmante');
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
@@ -1159,11 +1196,7 @@ function generateDevolucionSaldo(doc, y, ml, cw, pw, mr) {
 
     pdfSetNormal(doc);
     doc.text('Muchas gracias,', ml, y); y += 10;
-    y = pdfDrawSignatureLine(doc, y, ml, cw);
-    pdfSetBold(doc);
-    doc.text(nombreTomador, ml, y); y += 5.5;
-    pdfSetNormal(doc);
-    doc.text(`${tipoDoc} No. ${numDoc}`, ml, y);
+    y = pdfDrawSignatureBlock(doc, y, ml, cw, nombreTomador, tipoDoc, numDoc, 'tipo_doc');
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
@@ -1236,11 +1269,7 @@ function generateRehabilitacion(doc, y, ml, cw, pw, mr) {
     y = pdfWriteText(doc, 'Cordialmente,', ml, y, cw);
     y += 12;
 
-    y = pdfDrawSignatureLine(doc, y, ml, cw);
-    pdfSetBold(doc);
-    doc.text(nombreTomador, ml, y); y += 5.5;
-    pdfSetNormal(doc);
-    doc.text(`${tipoDoc} No. ${numDoc}`, ml, y);
+    y = pdfDrawSignatureBlock(doc, y, ml, cw, nombreTomador, tipoDoc, numDoc, 'tipo_doc');
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
@@ -1310,11 +1339,7 @@ function generateCongelacionSalud(doc, y, ml, cw, pw, mr) {
     y = pdfWriteText(doc, 'Atentamente,', ml, y, cw);
     y += 15;
 
-    y = pdfDrawSignatureLine(doc, y, ml, cw);
-    pdfSetNormal(doc);
-    doc.text(`Tomador: ${nombreTomador}`, ml, y); y += 5.5;
-    doc.text(`Tipo de documento: ${tipoDoc}`, ml, y); y += 5.5;
-    doc.text(`Número de documento: ${numDoc}`, ml, y);
+    y = pdfDrawSignatureBlock(doc, y, ml, cw, nombreTomador, tipoDoc, numDoc, 'tipo_doc');
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
@@ -1346,11 +1371,7 @@ function generateConsultaCondiciones(doc, y, ml, cw, pw, mr) {
     y = pdfWriteText(doc, 'Cordialmente,', ml, y, cw);
     y += 15;
 
-    y = pdfDrawSignatureLine(doc, y, ml, cw);
-    pdfSetBold(doc);
-    doc.text(nombreTomador, ml, y); y += 5.5;
-    pdfSetNormal(doc);
-    doc.text(`${tipoDoc} No. ${numDoc}`, ml, y);
+    y = pdfDrawSignatureBlock(doc, y, ml, cw, nombreTomador, tipoDoc, numDoc, 'tipo_doc');
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
@@ -1395,11 +1416,7 @@ function generateRetiroAseguradoSalud(doc, y, ml, cw, pw, mr) {
     y = pdfWriteText(doc, 'Cordialmente,', ml, y, cw);
     y += 15;
 
-    y = pdfDrawSignatureLine(doc, y, ml, cw);
-    pdfSetBold(doc);
-    doc.text(nombreTomador, ml, y); y += 5.5;
-    pdfSetNormal(doc);
-    doc.text(`${tipoDocTomador} No. ${numDocTomador}`, ml, y);
+    y = pdfDrawSignatureBlock(doc, y, ml, cw, nombreTomador, tipoDocTomador, numDocTomador, 'tipo_doc');
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
