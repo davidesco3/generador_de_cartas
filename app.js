@@ -277,6 +277,22 @@ const LETTERS = [
             { id: 'tipo_doc', label: 'Tipo de Documento', type: 'select', options: ['Cédula de Ciudadanía', 'Cédula de Extranjería', 'NIT', 'Pasaporte'], required: true },
             { id: 'numero_doc', label: 'Número de Documento', placeholder: 'Ej: 1.234.567.890', required: true },
         ]
+    },
+    {
+        id: 'nombramiento_arl',
+        title: 'Nombramiento de intermediario ARL',
+        desc: 'Solicitud para nombramiento de intermediario en Riesgos Laborales (ARL)',
+        icon: '🏢',
+        iconColor: 'blue',
+        requiresClientSignature: true,
+        fields: [
+            { id: 'fecha', label: 'Fecha de elaboración (Hoy)', type: 'date', required: true },
+            { id: '_section_empresa', label: 'Datos de la Empresa', type: 'section' },
+            { id: 'nombre_representante', label: 'Nombre del Representante Legal', placeholder: 'Nombre completo', required: true },
+            { id: 'cedula_representante', label: 'Cédula del Representante Legal', placeholder: 'Ej: 12345678', required: true },
+            { id: 'nombre_empresa', label: 'Nombre de la Empresa', placeholder: 'Razón social', required: true },
+            { id: 'nit_empresa', label: 'NIT', placeholder: 'Ej: 900.123.456-7', required: true }
+        ]
     }
 ];
 
@@ -759,6 +775,7 @@ function generatePDF(e) {
             case 'congelacion_salud': generateCongelacionSalud(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
             case 'consulta_condiciones': generateConsultaCondiciones(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
             case 'retiro_asegurado_salud': generateRetiroAseguradoSalud(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
+            case 'nombramiento_arl': generateNombramientoArl(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
         }
 
         // ---- Save ----
@@ -1428,6 +1445,47 @@ function generateRetiroAseguradoSalud(doc, y, ml, cw, pw, mr) {
     y += 15;
 
     y = pdfDrawSignatureBlock(doc, y, ml, cw, nombreTomador, tipoDocTomador, numDocTomador, 'tipo_doc');
+
+    pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
+}
+
+function generateNombramientoArl(doc, y, ml, cw, pw, mr) {
+    const fecha = formatDate(getFieldValue('fecha'));
+    const nombreRepresentante = getFieldValue('nombre_representante');
+    const cedulaRepresentante = getFieldValue('cedula_representante');
+    const nombreEmpresa = getFieldValue('nombre_empresa');
+    const nitEmpresa = getFieldValue('nit_empresa');
+
+    // Date
+    pdfSetNormal(doc);
+    y = pdfWriteText(doc, `Medellín, ${fecha}`, ml, y, cw);
+    y += 8;
+
+    // Addressee
+    pdfSetBold(doc);
+    doc.text('Señores:', ml, y); y += 5.5;
+    doc.text('ADMINISTRADORA DE RIESGOS LABORALES SURA', ml, y); y += 10;
+
+    // Subject
+    pdfSetSubject(doc);
+    y = pdfWriteText(doc, 'Asunto: Nombramiento de intermediario Riesgos Laborales', ml, y, cw);
+    y += 8;
+
+    // Body
+    pdfSetNormal(doc);
+    y = pdfWriteText(doc, `Cordial Saludo, Yo ${nombreRepresentante}, Representante Legal de la Empresa ${nombreEmpresa} nit ${nitEmpresa}, solicito el nombramiento del intermediario GuiaBien Asesores en Seguros con NIT 900244957-5.`, ml, y, cw);
+    y += 15;
+
+    // Signature
+    pdfSetNormal(doc);
+    doc.text('Cordialmente,', ml, y); y += 8;
+    
+    y = pdfDrawSignatureLine(doc, y, ml, cw); 
+    pdfSetBold(doc);
+    doc.text(nombreRepresentante, ml, y); y += 5.5;
+    pdfSetNormal(doc);
+    doc.text('Representante Legal', ml, y); y += 5.5;
+    doc.text(`CC: ${cedulaRepresentante}`, ml, y); y += 5.5;
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
