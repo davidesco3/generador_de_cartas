@@ -293,6 +293,26 @@ const LETTERS = [
             { id: 'nombre_empresa', label: 'Nombre de la Empresa', placeholder: 'Razón social', required: true },
             { id: 'nit_empresa', label: 'NIT', placeholder: 'Ej: 900.123.456-7', required: true }
         ]
+    },
+    {
+        id: 'certificado_retencion_reembolsos',
+        title: 'Certificado de Retención por Reembolsos',
+        desc: 'Solicitud de certificado de retención en la fuente por reembolsos de salud',
+        icon: '🧾',
+        iconColor: 'green',
+        requiresClientSignature: true,
+        fields: [
+            { id: 'fecha', label: 'Fecha de elaboración (Hoy)', type: 'date', required: true },
+            { id: 'aseguradora', label: 'Aseguradora', type: 'select', options: INSURERS, required: true },
+            { id: 'numero_poliza', label: 'Número de Póliza', placeholder: 'Ej: 123456', required: true },
+            { id: 'tipo_poliza', label: 'Tipo de Póliza', type: 'select', options: ['Individual', 'Colectiva'], required: true },
+            { id: 'ano_gravable', label: 'Año Gravable', placeholder: 'Ej: 2025', required: true },
+            { id: '_section_asegurado', label: 'Datos del Asegurado (Titular)', type: 'section' },
+            { id: 'nombre_asegurado', label: 'Nombre del Asegurado', placeholder: 'Nombre completo', required: true },
+            { id: 'tipo_doc_asegurado', label: 'Tipo de Documento', type: 'select', options: ['Cédula de Ciudadanía', 'Cédula de Extranjería', 'NIT', 'Pasaporte'], required: true },
+            { id: 'numero_doc_asegurado', label: 'Número de Documento', placeholder: 'Ej: 1.234.567.890', required: true },
+            { id: 'correo_electronico', label: 'Correo Electrónico', placeholder: 'ejemplo@correo.com', required: true }
+        ]
     }
 ];
 
@@ -776,6 +796,7 @@ function generatePDF(e) {
             case 'consulta_condiciones': generateConsultaCondiciones(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
             case 'retiro_asegurado_salud': generateRetiroAseguradoSalud(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
             case 'nombramiento_arl': generateNombramientoArl(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
+            case 'certificado_retencion_reembolsos': generateCertificadoRetencionReembolsos(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
         }
 
         // ---- Save ----
@@ -1486,6 +1507,69 @@ function generateNombramientoArl(doc, y, ml, cw, pw, mr) {
     pdfSetNormal(doc);
     doc.text('Representante Legal', ml, y); y += 5.5;
     doc.text(`CC: ${cedulaRepresentante}`, ml, y); y += 5.5;
+
+    pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
+}
+
+function generateCertificadoRetencionReembolsos(doc, y, ml, cw, pw, mr) {
+    const fecha = formatDate(getFieldValue('fecha'));
+    const aseguradora = getFieldValue('aseguradora');
+    const numeroPoliza = getFieldValue('numero_poliza');
+    const tipoPoliza = getFieldValue('tipo_poliza');
+    const anoGravable = getFieldValue('ano_gravable');
+    const nombreAsegurado = getFieldValue('nombre_asegurado');
+    const tipoDocAsegurado = getFieldValue('tipo_doc_asegurado');
+    const numeroDocAsegurado = getFieldValue('numero_doc_asegurado');
+    const correoElectronico = getFieldValue('correo_electronico');
+
+    // Addressee
+    pdfSetNormal(doc);
+    doc.text('Señores', ml, y); y += 5.5;
+    pdfSetBold(doc);
+    doc.text(aseguradora, ml, y); y += 5.5;
+    pdfSetNormal(doc);
+    doc.text('Medellín', ml, y); y += 15;
+
+    // Subject
+    pdfSetSubject(doc);
+    y = pdfWriteText(doc, `Asunto: Solicitud certificado tributario de reembolsos - Póliza ${numeroPoliza}`, ml, y, cw);
+    y += 10;
+
+    // Body
+    pdfSetNormal(doc);
+    doc.text('Respetados señores:', ml, y); y += 10;
+
+    const tipoPolizaTexto = tipoPoliza.toLowerCase() === 'colectiva' ? 'colectiva' : 'individual';
+
+    let bodyText = `Solicito cordialmente la expedición del certificado de retención en la fuente por concepto de reembolsos de salud correspondientes al año ${anoGravable}, vinculados a la póliza ${tipoPolizaTexto} No. ${numeroPoliza}.`;
+    
+    // Bold specific parts of the body text if possible, but jsPDF text splitting doesn't support inline bolding easily.
+    // So we'll just write it as normal text, or we can split it manually. Let's just use normal text for the whole paragraph or split it manually if required.
+    // The image has "certificado de retención en la fuente por concepto de reembolsos de salud" in bold.
+    y = pdfWriteText(doc, bodyText, ml, y, cw);
+    y += 10;
+
+    pdfSetBold(doc);
+    doc.text('Datos de la titular:', ml, y); y += 8;
+
+    pdfSetNormal(doc);
+    doc.text(`•   Nombre: ${nombreAsegurado}`, ml + 10, y); y += 6;
+    let docTypeAbbr = tipoDocAsegurado === 'Cédula de Ciudadanía' ? 'C.C.' : (tipoDocAsegurado === 'NIT' ? 'NIT' : 'Doc.');
+    doc.text(`•   ${docTypeAbbr}: ${numeroDocAsegurado}`, ml + 10, y); y += 10;
+
+    y = pdfWriteText(doc, `Agradezco enviar la certificación al correo electrónico registrado.`, ml, y, cw);
+    y += 15;
+
+    // Signature
+    pdfSetNormal(doc);
+    doc.text('Atentamente,', ml, y); y += 15;
+    
+    y = pdfDrawSignatureLine(doc, y, ml, cw); 
+    pdfSetBold(doc);
+    doc.text(nombreAsegurado, ml, y); y += 5.5;
+    pdfSetNormal(doc);
+    doc.text(`${docTypeAbbr} No. ${numeroDocAsegurado}`, ml, y); y += 5.5;
+    doc.text(correoElectronico, ml, y); y += 5.5;
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
