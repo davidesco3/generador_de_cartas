@@ -108,6 +108,25 @@ const LETTERS = [
         ]
     },
     {
+        id: 'apertura_colectiva_sura',
+        title: 'Autorización Apertura Póliza Colectiva SURA',
+        desc: 'Carta de autorización para pólizas colectivas de salud, vida, autos u hogar con SURA',
+        icon: '🏢',
+        iconColor: 'blue',
+        requiresClientSignature: true,
+        fields: [
+            { id: 'fecha', label: 'Fecha de elaboración (Hoy)', type: 'date', required: true },
+            { id: 'ramo', label: 'Tipo de Póliza', type: 'select', options: ['Salud', 'Vida', 'Autos', 'Hogar'], required: true },
+            { id: 'codigo_guiabien', label: 'Código de GuíaBien', placeholder: 'Ej: 3052', required: true },
+            { id: '_section_empresa', label: 'Datos de la Empresa', type: 'section' },
+            { id: 'nombre_representante', label: 'Nombre del Representante Legal', placeholder: 'Nombre completo', required: true },
+            { id: 'tipo_doc_representante', label: 'Tipo de Documento', type: 'select', options: ['Cédula de Ciudadanía', 'Cédula de Extranjería', 'Pasaporte'], required: true },
+            { id: 'identificacion_representante', label: 'Número de Identificación', placeholder: 'Ej: 1.234.567.890', required: true },
+            { id: 'nombre_empresa', label: 'Nombre de la Empresa', placeholder: 'Razón social', required: true },
+            { id: 'nit', label: 'NIT de la Empresa', placeholder: 'Ej: 900.123.456-7', required: true },
+        ]
+    },
+    {
         id: 'apertura_colectiva',
         title: 'Solicitud Apertura de Póliza Colectiva',
         desc: 'Autorización para expedir una póliza colectiva empresarial',
@@ -786,6 +805,7 @@ function generatePDF(e) {
             case 'actualizacion_beneficiarios': generateActualizacionBeneficiarios(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
             case 'cambio_periodicidad': generateCambioPeriodicidad(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
             case 'cancelacion_poliza': generateCancelacionPoliza(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
+            case 'apertura_colectiva_sura': generateAperturaColectivaSura(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
             case 'apertura_colectiva': generateAperturaColectiva(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
 
             case 'cambio_tomador': generateCambioTomador(doc, y, marginLeft, contentWidth, pageWidth, marginRight); break;
@@ -1159,6 +1179,54 @@ function generateAperturaColectiva(doc, y, ml, cw, pw, mr) {
     doc.text(getFieldValue('nombre_empresa'), ml, y); y += 5.5;
     pdfSetNormal(doc);
     doc.text(`NIT: ${getFieldValue('nit')}`, ml, y);
+
+    pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
+}
+
+function generateAperturaColectivaSura(doc, y, ml, cw, pw, mr) {
+    const fecha = formatDate(getFieldValue('fecha'));
+    const codigoGuiaBien = getFieldValue('codigo_guiabien');
+    const ramo = getFieldValue('ramo');
+    const nombreRep = getFieldValue('nombre_representante');
+    const tipoDoc = getFieldValue('tipo_doc_representante');
+    const numDoc = getFieldValue('identificacion_representante');
+    const nombreEmp = getFieldValue('nombre_empresa');
+    const nit = getFieldValue('nit');
+
+    pdfSetNormal(doc);
+    doc.text('Señores', ml, y); y += 5.5;
+    doc.text('Sura', ml, y); y += 5.5;
+    y = pdfWriteText(doc, `Medellín, ${fecha}`, ml, y, cw);
+    y += 10;
+
+    pdfSetSubject(doc);
+    y = pdfWriteText(doc, `Asunto: Autorización para apertura de Póliza de ${ramo} Colectiva`, ml, y, cw);
+    y += 10;
+
+    pdfSetNormal(doc);
+    doc.text('Cordial saludo,', ml, y); y += 10;
+    
+    let bodyText1 = `Yo, ${nombreRep}, mayor de edad, identificado(a) con ${tipoDoc} No. ${numDoc}, actuando en mi calidad de Representante Legal de ${nombreEmp}, empresa identificada con NIT ${nit}, por medio de la presente autorizo de manera expresa, voluntaria e irrevocable a Sura para realizar la apertura, emisión de la Póliza de ${ramo} Colectiva a favor de nuestros integrantes.`;
+    y = pdfWriteText(doc, bodyText1, ml, y, cw);
+    y += 5;
+
+    let bodyText2 = `Asimismo, confirmo que aceptamos las condiciones comerciales, coberturas y términos de la propuesta previamente evaluada a través de nuestro asesor GuíaBien ${codigoGuiaBien} para la contratación de este servicio.`;
+    y = pdfWriteText(doc, bodyText2, ml, y, cw);
+    y += 5;
+
+    let bodyText3 = `Agradezco de antemano la atención prestada y el inicio de la gestión correspondiente.`;
+    y = pdfWriteText(doc, bodyText3, ml, y, cw);
+    y += 10;
+
+    doc.text('Atentamente,', ml, y); y += 18;
+
+    y = pdfDrawSignatureLine(doc, y, ml, cw);
+    pdfSetBold(doc);
+    doc.text(nombreRep.toUpperCase(), ml, y); y += 5.5;
+    pdfSetNormal(doc);
+    doc.text(`${tipoDoc === 'Cédula de Ciudadanía' ? 'CC.' : tipoDoc === 'Cédula de Extranjería' ? 'CE.' : tipoDoc} ${numDoc}`, ml, y); y += 5.5;
+    doc.text('Representante Legal', ml, y); y += 5.5;
+    doc.text(nombreEmp, ml, y);
 
     pdfFooter(doc, pw, doc.internal.pageSize.getHeight());
 }
